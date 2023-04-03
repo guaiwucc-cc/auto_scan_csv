@@ -1,41 +1,71 @@
-# 从配置文件中获取目标文件夹路径
-$config = Get-Content -Path ".\config.json" -ErrorAction Stop
+# 读取外部配置文件
+$config = Get-Content .\config.txt
 $folder = $config.Trim()
 
-# 定义检查文件夹的函数
-function Check-Folder {
-    # 获取文件夹下的所有 CSV 文件
-    $files = Get-ChildItem -Path $folder -Filter "*.csv"
-    foreach ($file in $files) {
-        # 转换 CSV 文件为 Excel 文件
-        ConvertTo-Excel -FilePath $file.FullName
-    }
-}
-
-# 定义转换为 Excel 文件的函数
+# 定义函数，将 CSV 文件转换成 Excel 文件并排列
 function ConvertTo-Excel {
-    [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$FilePath
+        [ValidateScript({ Test-Path $_ -PathType 'Leaf' })]
+        [string]$CsvFilePath,
+        [Parameter(Mandatory = $true)]
+        [string]$ExcelFilePath
     )
 
+    # 导入 CSV 文件到数据表中
+    $csv = Import-Csv $CsvFilePath
+
+    # 排序数据表
+    $sorted = $csv | Sort-Object -Property 会社コード, 店舗コード, Jancode
+
+    # 创建 Excel 对象
     $excel = New-Object -ComObject Excel.Application
+
+    # 隐藏 Excel 界面
     $excel.Visible = $false
-    $excel.DisplayAlerts = $false
-    $workbook = $excel.Workbooks.Open($FilePath)
-    $worksheet = $workbook.ActiveSheet
-    $excelPath = $FilePath -replace '\.csv$', '.xlsx'
-    $workbook.SaveAs($excelPath, [Microsoft.Office.Interop.Excel.XlFileFormat]::xlOpenXMLWorkbook)
+
+    # 添加一个新的工作簿
+    $workbook = $excel.Workbooks.Add()
+
+    # 选择工作表
+    $worksheet = $workbook.Worksheets.Item(1)
+
+    # 写入表头
+    $worksheet.Cells.Item(1,1) = "会社コード"
+    $worksheet.Cells.Item(1,2) = "店舗コード"
+    $worksheet.Cells.Item(1,3) = "Jancode"
+    $worksheet.Cells.Item(1,4) = "NS販売価格"
+
+    # 写入数据
+    $row = 2
+    foreach ($item in $sorted) {
+        $worksheet.Cells.Item($row,1) = $item."会社コード"
+        $worksheet.Cells.Item($row,2) = $item."店舗コード"
+        $worksheet.Cells.Item($row,3) = $item."Jancode"
+        $worksheet.Cells.Item($row,4) = $item."NS販売価格"
+        $row++
+    }
+
+    # 保存 Excel 文件
+    $workbook.SaveAs($ExcelFilePath)
+
+    # 释放资源
     $workbook.Close()
     $excel.Quit()
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
 }
 
-# 每隔五分钟执行一次检查
+# 循环监视目标文件夹，当出现 CSV 文件时转换成 Excel 文件
 while ($true) {
-    Check-Folder
-    Start-Sleep -Seconds 300
+    Write-Host "Scanning folder: $folder"
+    Get-ChildItem $folder -Filter *.csv | ForEach-Object {
+        $csvPath = $_.FullName
+        $excelPath = $_.FullName.Replace(".csv", ".xlsx")
+        Write-Host "Converting $csvPath to $excelPath"
+        ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
+        Remove-Item $csvPath
+    }
+    Start-Sleep -Seconds 300 # 等待五分钟
 }
