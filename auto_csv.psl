@@ -1,54 +1,41 @@
-while($true) {
-    $folder = "C:\Your\Folder\Path"
-    $filter = "*.xlsx" # 只监视Excel文件
-    $path = Join-Path $folder $filter
-    
-    $watcher = New-Object System.IO.FileSystemWatcher
-    $watcher.Path = $folder
-    $watcher.Filter = $filter
-    $watcher.IncludeSubdirectories = $false
-    $watcher.EnableRaisingEvents = $true
-    
-    $onCreated = Register-ObjectEvent $watcher "Created" -Action {
-        $eventArgs = $Args[1]
-        Write-Host "New file created: $($eventArgs.Name)"
-        
-        if($eventArgs.Name -like "*.xlsx") { # 如果是Excel文件
-            $excelPath = Join-Path $folder $eventArgs.Name
-            $csvPath = Join-Path $folder ($eventArgs.Name -replace ".xlsx$", ".csv") # 创建新的CSV文件路径
-            
-            # 转换Excel文件为CSV文件
-            $excel = New-Object -ComObject Excel.Application
-            $workbook = $excel.Workbooks.Open($excelPath)
-            $worksheet = $workbook.Worksheets.Item(1)
-            $worksheet.SaveAs($csvPath, 6) # 将Excel文件另存为CSV文件
-            $workbook.Close()
-            $excel.Quit()
-            
-            # 读取CSV文件并按照指定格式排列数据
-            $csv = Import-Csv $csvPath
-            $csv | Select-Object @{Name="会社コード"; Expression={""}}, 
-                                  @{Name="店舗コード"; Expression={""}}, 
-                                  @{Name="Jancode"; Expression={$_.Jancode}}, 
-                                  @{Name="NS販売価格"; Expression={$_.Price}} |
-                    Export-Csv $csvPath -NoTypeInformation
-        }
+# 从配置文件中获取目标文件夹路径
+$config = Get-Content -Path ".\config.json" -ErrorAction Stop
+$folder = $config.Trim()
+
+# 定义检查文件夹的函数
+function Check-Folder {
+    # 获取文件夹下的所有 CSV 文件
+    $files = Get-ChildItem -Path $folder -Filter "*.csv"
+    foreach ($file in $files) {
+        # 转换 CSV 文件为 Excel 文件
+        ConvertTo-Excel -FilePath $file.FullName
     }
-    
-    $onChanged = Register-ObjectEvent $watcher "Changed" -Action {
-        $eventArgs = $Args[1]
-        Write-Host "File changed: $($eventArgs.Name)"
-    }
-    
-    $onDeleted = Register-ObjectEvent $watcher "Deleted" -Action {
-        $eventArgs = $Args[1]
-        Write-Host "File deleted: $($eventArgs.Name)"
-    }
-    
-    $onRenamed = Register-ObjectEvent $watcher "Renamed" -Action {
-        $eventArgs = $Args[1]
-        Write-Host "File renamed from $($eventArgs.OldName) to $($eventArgs.Name)"
-    }
-    
+}
+
+# 定义转换为 Excel 文件的函数
+function ConvertTo-Excel {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath
+    )
+
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    $workbook = $excel.Workbooks.Open($FilePath)
+    $worksheet = $workbook.ActiveSheet
+    $excelPath = $FilePath -replace '\.csv$', '.xlsx'
+    $workbook.SaveAs($excelPath, [Microsoft.Office.Interop.Excel.XlFileFormat]::xlOpenXMLWorkbook)
+    $workbook.Close()
+    $excel.Quit()
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+}
+
+# 每隔五分钟执行一次检查
+while ($true) {
+    Check-Folder
     Start-Sleep -Seconds 300
 }
