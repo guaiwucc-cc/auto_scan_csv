@@ -1,0 +1,54 @@
+while($true) {
+    $folder = "C:\Your\Folder\Path"
+    $filter = "*.xlsx" # 只监视Excel文件
+    $path = Join-Path $folder $filter
+    
+    $watcher = New-Object System.IO.FileSystemWatcher
+    $watcher.Path = $folder
+    $watcher.Filter = $filter
+    $watcher.IncludeSubdirectories = $false
+    $watcher.EnableRaisingEvents = $true
+    
+    $onCreated = Register-ObjectEvent $watcher "Created" -Action {
+        $eventArgs = $Args[1]
+        Write-Host "New file created: $($eventArgs.Name)"
+        
+        if($eventArgs.Name -like "*.xlsx") { # 如果是Excel文件
+            $excelPath = Join-Path $folder $eventArgs.Name
+            $csvPath = Join-Path $folder ($eventArgs.Name -replace ".xlsx$", ".csv") # 创建新的CSV文件路径
+            
+            # 转换Excel文件为CSV文件
+            $excel = New-Object -ComObject Excel.Application
+            $workbook = $excel.Workbooks.Open($excelPath)
+            $worksheet = $workbook.Worksheets.Item(1)
+            $worksheet.SaveAs($csvPath, 6) # 将Excel文件另存为CSV文件
+            $workbook.Close()
+            $excel.Quit()
+            
+            # 读取CSV文件并按照指定格式排列数据
+            $csv = Import-Csv $csvPath
+            $csv | Select-Object @{Name="会社コード"; Expression={""}}, 
+                                  @{Name="店舗コード"; Expression={""}}, 
+                                  @{Name="Jancode"; Expression={$_.Jancode}}, 
+                                  @{Name="NS販売価格"; Expression={$_.Price}} |
+                    Export-Csv $csvPath -NoTypeInformation
+        }
+    }
+    
+    $onChanged = Register-ObjectEvent $watcher "Changed" -Action {
+        $eventArgs = $Args[1]
+        Write-Host "File changed: $($eventArgs.Name)"
+    }
+    
+    $onDeleted = Register-ObjectEvent $watcher "Deleted" -Action {
+        $eventArgs = $Args[1]
+        Write-Host "File deleted: $($eventArgs.Name)"
+    }
+    
+    $onRenamed = Register-ObjectEvent $watcher "Renamed" -Action {
+        $eventArgs = $Args[1]
+        Write-Host "File renamed from $($eventArgs.OldName) to $($eventArgs.Name)"
+    }
+    
+    Start-Sleep -Seconds 300
+}
