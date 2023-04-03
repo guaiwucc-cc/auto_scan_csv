@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-# è¯»å–å¤–éƒ¨é…ç½®æ–‡ä»¶
+# İ’èƒtƒ@ƒCƒ‹‚©‚çƒtƒHƒ‹ƒ_[ƒpƒX‚ğæ“¾‚·‚é
 $config = Get-Content .\config.txt
 $folder = $config.Trim()
 
-# å®šä¹‰å‡½æ•°ï¼Œå°† CSV æ–‡ä»¶è½¬æ¢æˆ Excel æ–‡ä»¶å¹¶æ’åˆ—
+# •ÏŠ·ŠÖ”‚ğ’è‹`‚·‚é
 function ConvertTo-Excel {
     param (
         [Parameter(Mandatory = $true)]
@@ -13,60 +12,68 @@ function ConvertTo-Excel {
         [string]$ExcelFilePath
     )
 
-    # å¯¼å…¥ CSV æ–‡ä»¶åˆ°æ•°æ®è¡¨ä¸­
-    $csv = Import-Csv $CsvFilePath
+    # CSVƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚Ş
+    $csv = Import-Csv $CsvFilePath -Header '‰ïĞƒR[ƒh', '“X•ÜƒR[ƒh', 'Jancode', 'NS”Ì”„‰¿Ši'
 
-    # æ’åºæ•°æ®è¡¨
-    $sorted = $csv | Sort-Object -Property ä¼šç¤¾ã‚³ãƒ¼ãƒ‰, åº—èˆ—ã‚³ãƒ¼ãƒ‰, Jancode
+    # Jancode‚Åƒ\[ƒg‚³‚ê‚½ƒf[ƒ^‚ğæ“¾‚·‚é
+    $sorted = $csv | Sort-Object -Property Jancode
 
-    # åˆ›å»º Excel å¯¹è±¡
+    # ExcelƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒIƒuƒWƒFƒNƒg‚ğì¬‚·‚é
     $excel = New-Object -ComObject Excel.Application
 
-    # éšè— Excel ç•Œé¢
+    # Excel‚ğ”ñ•\¦‚É‚·‚é
     $excel.Visible = $false
 
-    # æ·»åŠ ä¸€ä¸ªæ–°çš„å·¥ä½œç°¿
+    # V‚µ‚¢ƒ[ƒNƒuƒbƒN‚ğì¬‚·‚é
     $workbook = $excel.Workbooks.Add()
 
-    # é€‰æ‹©å·¥ä½œè¡¨
+    # Å‰‚Ìƒ[ƒNƒV[ƒgƒIƒuƒWƒFƒNƒg‚ğæ“¾‚·‚é
     $worksheet = $workbook.Worksheets.Item(1)
 
-    # å†™å…¥è¡¨å¤´
-    $worksheet.Cells.Item(1,1) = "ä¼šç¤¾ã‚³ãƒ¼ãƒ‰"
-    $worksheet.Cells.Item(1,2) = "åº—èˆ—ã‚³ãƒ¼ãƒ‰"
+    # ƒwƒbƒ_[‚ğ‘‚«‚Ş
+    $worksheet.Cells.Item(1,1) = "‰ïĞƒR[ƒh"
+    $worksheet.Cells.Item(1,2) = "“X•ÜƒR[ƒh"
     $worksheet.Cells.Item(1,3) = "Jancode"
-    $worksheet.Cells.Item(1,4) = "NSè²©å£²ä¾¡æ ¼"
+    $worksheet.Cells.Item(1,4) = "NS”Ì”„‰¿Ši"
 
-    # å†™å…¥æ•°æ®
+   # ƒf[ƒ^‚ğ‘‚«‚Ş
     $row = 2
     foreach ($item in $sorted) {
-        $worksheet.Cells.Item($row,1) = $item."ä¼šç¤¾ã‚³ãƒ¼ãƒ‰"
-        $worksheet.Cells.Item($row,2) = $item."åº—èˆ—ã‚³ãƒ¼ãƒ‰"
+        $worksheet.Cells.Item($row,1) = $item."‰ïĞƒR[ƒh"
+        $worksheet.Cells.Item($row,2) = $item."“X•ÜƒR[ƒh"
         $worksheet.Cells.Item($row,3) = $item."Jancode"
-        $worksheet.Cells.Item($row,4) = $item."NSè²©å£²ä¾¡æ ¼"
+        $worksheet.Cells.Item($row,4) = $item."NS”Ì”„‰¿Ši"
         $row++
     }
 
-    # ä¿å­˜ Excel æ–‡ä»¶
+    # Excelƒtƒ@ƒCƒ‹‚ğ•Û‘¶‚·‚é
     $workbook.SaveAs($ExcelFilePath)
 
-    # é‡Šæ”¾èµ„æº
+    # ƒ[ƒNƒuƒbƒN‚ÆExcelƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚ğ•Â‚¶‚é
     $workbook.Close()
     $excel.Quit()
+
+    # ExcelƒIƒuƒWƒFƒNƒg‚ğ‰ğ•ú‚·‚é
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 }
 
-# å¾ªç¯ç›‘è§†ç›®æ ‡æ–‡ä»¶å¤¹ï¼Œå½“å‡ºç° CSV æ–‡ä»¶æ—¶è½¬æ¢æˆ Excel æ–‡ä»¶
+# 5•ª‚²‚Æ‚ÉƒtƒHƒ‹ƒ_[‚ğƒXƒLƒƒƒ“‚·‚é
 while ($true) {
     Write-Host "Scanning folder: $folder"
     Get-ChildItem $folder -Filter *.csv | ForEach-Object {
         $csvPath = $_.FullName
         $excelPath = $_.FullName.Replace(".csv", ".xlsx")
         Write-Host "Converting $csvPath to $excelPath"
-        ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
-        Remove-Item $csvPath
+        try {
+            ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
+            Remove-Item $csvPath
+        } catch {
+            Write-Host "Error converting $csvPath: $_"
+        }
     }
-    Start-Sleep -Seconds 300 # ç­‰å¾…äº”åˆ†é’Ÿ
+    Start-Sleep -Seconds 300
 }
