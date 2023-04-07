@@ -45,9 +45,15 @@ function ConvertTo-Excel {
    # データを書き込む
     $row = 2
     foreach ($item in $csv) {
-        $worksheet.Cells.Item($row,1) = $item."会社コード"
-        $worksheet.Cells.Item($row,2) = $item."店舗コード"
-        $worksheet.Cells.Item($row,3) = $item."Jancode"
+        $worksheet.Cells.Item($row, 1).NumberFormat = "@"
+        $worksheet.Cells.Item($row, 1).Value = $item."会社コード".ToString()
+    
+        $worksheet.Cells.Item($row, 2).NumberFormat = "@"
+        $worksheet.Cells.Item($row, 2).Value = $item."店舗コード".ToString()
+    
+        $worksheet.Cells.Item($row, 3).NumberFormat = "@"
+        $worksheet.Cells.Item($row, 3).Value = $item."Jancode".ToString()
+
         $worksheet.Cells.Item($row,4) = $item."NS販売価格"
         $row++
     }
