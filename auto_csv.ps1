@@ -76,6 +76,7 @@ function ConvertTo-Excel {
 # フォルダーをスキャンする
 Write-Host "Scanning folder: $folder"
 $processedFiles = 0
+$failedFiles = 0
 Get-ChildItem $folder -Filter *.csv | ForEach-Object {
     $csvPath = $_.FullName
     $excelPath = $_.FullName.Replace(".csv", ".xlsx")
@@ -86,10 +87,11 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
         $processedFiles++
     } catch {
         Write-Host "Error converting"
+        $failedFiles++
     }
 
     $endTime = Get-Date
-    $logMessage = "Start Time: $startTime | End Time: $endTime | Converted From: $csvPath | Converted To: $excelPath | Successfully Processed Files: $processedFiles"
+    $logMessage = "Start Time: $startTime | End Time: $endTime | Converted From: $csvPath | Converted To: $excelPath | Successfully Processed Files: $processedFiles | Failed Files: $failedFiles"
     Write-Host $logMessage
     Add-Content -Path $logFilePath -Value $logMessage
 }
