@@ -89,3 +89,12 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
     Add-Content -Path $logFilePath -Value $logMessage
 }
 
+# ゼロ件処理時、logファイルを記録する処理
+if ($processedFiles -eq 0) {
+    $endTime = Get-Date
+    $elapsedTime = $endTime - $startTime
+    $logMessage = "Execution Time: $($elapsedTime.ToString()) | No files processed."
+    Write-Host $logMessage
+    Add-Content -Path $logFilePath -Value $logMessage
+}
+
