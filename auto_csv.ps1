@@ -83,8 +83,7 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
     }
 
     $endTime = Get-Date
-    $elapsedTime = $endTime - $startTime
-    $logMessage = "Execution Time: $($elapsedTime.ToString()) | Converted From: $csvPath | Converted To: $excelPath | Successfully Processed Files: $processedFiles"
+    $logMessage = "Start Time: $startTime | End Time: $endTime | Converted From: $csvPath | Converted To: $excelPath | Successfully Processed Files: $processedFiles"
     Write-Host $logMessage
     Add-Content -Path $logFilePath -Value $logMessage
 }
@@ -92,8 +91,7 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
 # ゼロ件処理時、logファイルを記録する処理
 if ($processedFiles -eq 0) {
     $endTime = Get-Date
-    $elapsedTime = $endTime - $startTime
-    $logMessage = "Execution Time: $($elapsedTime.ToString()) | No files processed."
+    $logMessage = "Start Time: $startTime | End Time: $endTime | No files processed."
     Write-Host $logMessage
     Add-Content -Path $logFilePath -Value $logMessage
 }
