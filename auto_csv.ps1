@@ -1,6 +1,10 @@
 # 設定ファイルからフォルダーパスを取得する
-$config = Get-Content .\config.txt
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$config = Get-Content "$scriptPath\config.txt"
 $folder = $config.Trim()
+
+# 実行開始時間を取得する
+$startTime = Get-Date
 
 # 変換関数を定義する
 function ConvertTo-Excel {
@@ -38,7 +42,7 @@ function ConvertTo-Excel {
 
    # データを書き込む
     $row = 2
-    foreach ($item in $sorted) {
+    foreach ($item in $csv) {
         $worksheet.Cells.Item($row,1) = $item."会社コード"
         $worksheet.Cells.Item($row,2) = $item."店舗コード"
         $worksheet.Cells.Item($row,3) = $item."Jancode"
@@ -61,19 +65,24 @@ function ConvertTo-Excel {
     [System.GC]::WaitForPendingFinalizers()
 }
 
-# 5分ごとにフォルダーをスキャンする
-while ($true) {
-    Write-Host "Scanning folder: $folder"
-    Get-ChildItem $folder -Filter *.csv | ForEach-Object {
-        $csvPath = $_.FullName
-        $excelPath = $_.FullName.Replace(".csv", ".xlsx")
-        Write-Host "Converting $csvPath to $excelPath"
-        try {
-            ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
-            Remove-Item $csvPath
-        } catch {
-            Write-Host "Error converting $csvPath: $_"
-        }
+# フォルダーをスキャンする
+Write-Host "Scanning folder: $folder"
+$processedFiles = 0
+Get-ChildItem $folder -Filter *.csv | ForEach-Object {
+    $csvPath = $_.FullName
+    $excelPath = $_.FullName.Replace(".csv", ".xlsx")
+    Write-Host "Converting $csvPath to $excelPath"
+    try {
+        ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
+        Remove-Item $csvPath
+        $processedFiles++
+    } catch {
+        Write-Host "Error converting"
     }
-    Start-Sleep -Seconds 300
+
+    $endTime = Get-Date
+    $elapsedTime = $endTime - $startTime
+    $logMessage = "Execution Time: $($elapsedTime.ToString()) | Converted From: $csvPath | Converted To: $excelPath | Successfully Processed Files: $processedFiles"
+    Write-Host $logMessage
 }
+
