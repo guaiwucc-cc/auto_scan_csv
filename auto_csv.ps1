@@ -3,8 +3,10 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $config = Get-Content "$scriptPath\config.txt"
 $folder = $config.Trim()
 
-# 実行開始時間を取得する
+# logファイルの処理初期化
 $startTime = Get-Date
+$logFileName = (Get-Date).ToString('yyyy-MM-dd') + '.log'
+$logFilePath = "$scriptPath\$logFileName"
 
 # 変換関数を定義する
 function ConvertTo-Excel {
@@ -84,5 +86,6 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
     $elapsedTime = $endTime - $startTime
     $logMessage = "Execution Time: $($elapsedTime.ToString()) | Converted From: $csvPath | Converted To: $excelPath | Successfully Processed Files: $processedFiles"
     Write-Host $logMessage
+    Add-Content -Path $logFilePath -Value $logMessage
 }
 
