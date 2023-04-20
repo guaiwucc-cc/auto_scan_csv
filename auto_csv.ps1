@@ -7,9 +7,6 @@ $folder = $config.Trim()
 $startTime = Get-Date
 $logFileName = (Get-Date).ToString('yyyy-MM-dd') + '.log'
 $logFilePath = "$scriptPath\$logFileName"
-# レコード数を初期化
-$csvRecode = 0
-$excelRecode = 0
 
 # 変換関数を定義する
 function ConvertTo-Excel {
@@ -23,9 +20,6 @@ function ConvertTo-Excel {
 
     # CSVファイルを読み込む
     $csv = Import-Csv $CsvFilePath -Header '会社コード', '店舗コード', 'Jancode', 'NS販売価格'
-
-    # CSVファイルのレコード数を統計する
-    $csvRecode = ($csv | Measure-Object).Count - 1
 
     # Jancodeでソートされたデータを取得する
     $sorted = $csv | Sort-Object -Property Jancode
@@ -42,14 +36,9 @@ function ConvertTo-Excel {
     # 最初のワークシートオブジェクトを取得する
     $worksheet = $workbook.Worksheets.Item(1)
 
-    # ヘッダーを書き込む
-    #$worksheet.Cells.Item(1,1) = "会社コード"
-    #$worksheet.Cells.Item(1,2) = "店舗コード"
-    #$worksheet.Cells.Item(1,3) = "Jancode"
-    #$worksheet.Cells.Item(1,4) = "NS販売価格"
-
    # データを書き込む
     $row = 1
+    $rowCount = 0
     foreach ($item in $csv) {
         $worksheet.Cells.Item($row, 1).NumberFormat = "@"
         $worksheet.Cells.Item($row, 1).Value = $item."会社コード".ToString()
@@ -62,9 +51,8 @@ function ConvertTo-Excel {
 
         $worksheet.Cells.Item($row,4) = $item."NS販売価格"
         $row++
+        $rowCount++
     }
-
-    $excelRecode = $row - 1
 
     # Excelファイルを保存する
     $workbook.SaveAs($ExcelFilePath)
@@ -79,6 +67,8 @@ function ConvertTo-Excel {
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
+
+    return $rowCount - 1
 }
 
 # フォルダーをスキャンする
@@ -90,7 +80,8 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
     $excelPath = $_.FullName.Replace(".csv", ".xlsx")
     Write-Host "Converting $csvPath to $excelPath"
     try {
-        ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
+        $csvRecode = (Import-Csv $csvPath).Count
+        $excelRecode = ConvertTo-Excel -CsvFilePath $csvPath -ExcelFilePath $excelPath
         Remove-Item $csvPath
         $processedFiles++
     } catch {
@@ -99,7 +90,7 @@ Get-ChildItem $folder -Filter *.csv | ForEach-Object {
     }
 
     $endTime = Get-Date
-    $logMessage = "Start Time: $startTime | End Time: $endTime | Converted From: $csvPath | Converted To: $excelPath | csv recode: $csvRecode - excel recode: $excelRecode | Successfully Processed Files: $processedFiles | Failed Files: $failedFiles"
+    $logMessage = "Start Time: $startTime | End Time: $endTime | Converted From: $csvPath | Converted To: $excelPath | csv recode: $csvRecode - excel recode: $excelRecode |Successfully Processed Files: $processedFiles | Failed Files: $failedFiles"
     Write-Host $logMessage
     Add-Content -Path $logFilePath -Value $logMessage
 }
