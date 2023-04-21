@@ -19,7 +19,8 @@ function ConvertTo-Excel {
     )
 
     # CSVファイルを読み込む
-    $csv = Import-Csv $CsvFilePath -Header '会社コード', '店舗コード', 'Jancode', 'NS販売価格'
+    #$csv = Import-Csv $CsvFilePath -Header '会社コード', '店舗コード', 'Jancode', 'NS販売価格' -Skip 1
+    $csv = Import-Csv $CsvFilePath -Skip 1
 
     # Jancodeでソートされたデータを取得する
     $sorted = $csv | Sort-Object -Property Jancode
@@ -35,6 +36,12 @@ function ConvertTo-Excel {
 
     # 最初のワークシートオブジェクトを取得する
     $worksheet = $workbook.Worksheets.Item(1)
+
+        # ヘッダーを書き込む
+    $worksheet.Cells.Item(1,1) = "会社コード4枠"
+    $worksheet.Cells.Item(1,2) = "店舗コード10枠"
+    $worksheet.Cells.Item(1,3) = "Jancode"
+    $worksheet.Cells.Item(1,4) = "NS販売価格(0より大きい整数または空のまま保持するしかできない)"
 
    # データを書き込む
     $row = 1
@@ -68,7 +75,10 @@ function ConvertTo-Excel {
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 
-    return $rowCount - 1
+    if($rowCount -lt 1){
+        return 0
+    }
+    return $rowCount
 }
 
 # フォルダーをスキャンする
